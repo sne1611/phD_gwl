@@ -120,7 +120,7 @@ for r in range(repeats):
 	print('%d) Test RMSE: %.3f' % (r+1, rmse))
 	error_scores.append(rmse)
 
-# summarize results
+# summarize results  #
 results = DataFrame()
 results['rmse'] = error_scores
 print(results.describe())
