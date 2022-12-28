@@ -152,7 +152,7 @@ y_valid_scaled = Target_scaler.fit_transform(np.array(y_valid).reshape(-1,1))
 y_test_scaled = Target_scaler.fit_transform(np.array(y_test).reshape(-1,1))
 
 
-epoch = 10
+epoch = 100
 history = model.fit(x=X_train_scaled, y=y_train_scaled, batch_size=5, epochs=epoch, verbose=1, validation_data=(X_valid_scaled, y_valid_scaled), shuffle=True)
 
 
