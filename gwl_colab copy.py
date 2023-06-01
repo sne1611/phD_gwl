@@ -32,15 +32,15 @@ df_close.describe()
 
 register_matplotlib_converters()
 
-plt.figure(figsize=(8, 6))
-plt.plot(df_close, color='g')
-#plt.title('GWL', weight='bold', fontsize=16)
-plt.xlabel('Time', weight='bold', fontsize=14)
-plt.ylabel('GWL', weight='bold', fontsize=14)
-plt.xticks(weight='bold', fontsize=12, rotation=45)
-plt.yticks(weight='bold', fontsize=12)
-plt.grid(color = 'y', linewidth = 0.5)
-plt.show()
+# plt.figure(figsize=(8, 6))
+# plt.plot(df_close, color='g')
+# #plt.title('GWL', weight='bold', fontsize=16)
+# plt.xlabel('Time', weight='bold', fontsize=14)
+# plt.ylabel('GWL', weight='bold', fontsize=14)
+# plt.xticks(weight='bold', fontsize=12, rotation=45)
+# plt.yticks(weight='bold', fontsize=12)
+# plt.grid(color = 'y', linewidth = 0.5)
+# plt.show()
 
 
 # input_layer = Input(shape=(15), dtype='float32')
@@ -119,7 +119,9 @@ model.summary()
 
 
 
-test_set_size = 0.05
+# test_set_size = 0.05
+test_set_size = 0.0061    # for single data
+
 valid_set_size= 0.05
 
 df_copy = df_new.reset_index(drop=True)
@@ -152,8 +154,8 @@ y_valid_scaled = Target_scaler.fit_transform(np.array(y_valid).reshape(-1,1))
 y_test_scaled = Target_scaler.fit_transform(np.array(y_test).reshape(-1,1))
 
 
-epoch = 2000
-history = model.fit(x=X_train_scaled, y=y_train_scaled, batch_size=5, epochs=epoch, verbose=1, validation_data=(X_valid_scaled, y_valid_scaled), shuffle=True)
+epoch = 2500
+history = model.fit(x=X_train_scaled, y=y_train_scaled, batch_size=3, epochs=epoch, verbose=1, validation_data=(X_valid_scaled, y_valid_scaled), shuffle=True)
 
 
 y_pred = model.predict(X_test_scaled)
@@ -170,12 +172,6 @@ print('R-squared score for the test set:', round(score,4))
 
 y_actual = pd.DataFrame(y_test_rescaled, columns=['Actual gwl'])
 y_hat = pd.DataFrame(y_pred_rescaled, columns=['Predicted gwl'])
-
-y_actual.to_csv("result_test_actual.csv")
-y_hat.to_csv("result_test_prdicted.csv")
-
-# header = ["y_actual","y_hat"]
-# df.to_csv('result_test.csv', columns = header)
 
 
 # plt.figure(figsize=(11, 6))

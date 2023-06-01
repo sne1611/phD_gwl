@@ -59,11 +59,11 @@ def invert_scale(scaler, X, value):
 	return inverted[0, -1]
 
 # fit an LSTM network to training data
-def fit_lstm(train, batch_size, nb_epoch, neurons):
+def fit_lstm(train, batch_size, nb_epoch, neurons_block_size):
 	X, y = train[:, 0:-1], train[:, -1]
 	X = X.reshape(X.shape[0], 1, X.shape[1])
 	model = Sequential()
-	model.add(LSTM(neurons, batch_input_shape=(batch_size, X.shape[1], X.shape[2]), stateful=True))
+	model.add(LSTM(neurons_block_size, batch_input_shape=(batch_size, X.shape[1], X.shape[2]), stateful=True))
 	model.add(Dense(1))
 	model.compile(loss='mean_squared_error', optimizer='adam')
 	for i in range(nb_epoch):
@@ -95,11 +95,11 @@ train, test = supervised_values[0:-12], supervised_values[-12:]
 scaler, train_scaled, test_scaled = scale(train, test)
 
 # repeat experiment
-repeats = 30
+repeats = 1
 error_scores = list()
 for r in range(repeats):
 	# fit the model
-	lstm_model = fit_lstm(train_scaled, 1, 3000, 4)
+	lstm_model = fit_lstm(train_scaled, 1, 1000, 5)
 	# forecast the entire training dataset to build up state for forecasting
 	train_reshaped = train_scaled[:, 0].reshape(len(train_scaled), 1, 1)
 	lstm_model.predict(train_reshaped, batch_size=1)
