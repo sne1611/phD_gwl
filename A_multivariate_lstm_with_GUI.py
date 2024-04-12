@@ -91,7 +91,7 @@ class GroundwaterPredictionApp:
 
     def train_and_predict(self, epochs):
         script_directory = os.path.dirname(os.path.abspath(__file__))
-        file_path = os.path.join(script_directory, 'parametric_data.csv')
+        file_path = os.path.join(script_directory, 'parametric data_incr.csv')
         data = pd.read_csv(file_path)
 
         # Select relevant features for prediction

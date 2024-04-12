@@ -15,9 +15,6 @@ from tkinter import filedialog
 import os
 
 
-    
-    
-
 class GroundwaterPredictionApp:
     def __init__(self, root):
         self.root = root
@@ -35,15 +32,17 @@ class GroundwaterPredictionApp:
         self.button_predict = ttk.Button(root, text="Predict and Show Results", command=self.predict_and_show)
         self.button_predict.pack()
 
+        self.button_append_csv = ttk.Button(root, text="Append Result to CSV", command=self.append_to_csv)
+        self.button_append_csv.pack()
+
         self.results_text = tk.Text(root, height=10, width=40)
         self.results_text.pack()
 
         self.parameter_window = None
         self.entry_units = None
         self.combo_activation_parameter = None
-        # self.activation_function = None
         self.entry_dropout = None
-        self.hidden_layers = None  # Initialize the number of hidden layers parameter
+        self.hidden_layers = None
 
     def open_parameter_window(self):
         self.parameter_window = tk.Toplevel(self.root)
@@ -58,68 +57,56 @@ class GroundwaterPredictionApp:
         self.label_lstm_units_parameter = ttk.Label(self.parameter_window, text="Number of LSTM Units:")
         self.label_lstm_units_parameter.pack()
 
-        self.combo_lstm_units_parameter = ttk.Combobox(self.parameter_window, values=["32", "64", "128", "256"])  # Example values, adjust as needed
+        self.combo_lstm_units_parameter = ttk.Combobox(self.parameter_window, values=["32", "64", "128", "256"])
         self.combo_lstm_units_parameter.pack()
 
         self.label_hidden_layers_parameter = ttk.Label(self.parameter_window, text="Number of Hidden Layers:")
         self.label_hidden_layers_parameter.pack()
 
-        self.combo_hidden_layers_parameter = ttk.Combobox(self.parameter_window, values=["0", "1", "2", "3"])  # Example values, adjust as needed
+        self.combo_hidden_layers_parameter = ttk.Combobox(self.parameter_window, values=["0", "1", "2", "3"])
         self.combo_hidden_layers_parameter.pack()
 
         self.label_dropout_parameter = ttk.Label(self.parameter_window, text="Dropout Rate:")
         self.label_dropout_parameter.pack()
 
-        self.combo_dropout_parameter = ttk.Combobox(self.parameter_window, values=["0.0", "0.2", "0.5", "0.7"])  # Example values, adjust as needed
+        self.combo_dropout_parameter = ttk.Combobox(self.parameter_window, values=["0.0", "0.2", "0.5", "0.7"])
         self.combo_dropout_parameter.pack()
 
-        
         self.button_save_parameters = ttk.Button(self.parameter_window, text="Save Parameters", command=self.save_parameters)
         self.button_save_parameters.pack()
 
     def save_parameters(self):
         self.lstm_units = int(self.combo_lstm_units_parameter.get())
-        self.activation_function = self.combo_activation_parameter.get()  # Update the activation function attribute
+        self.activation_function = self.combo_activation_parameter.get()
         self.dropout_rate = float(self.combo_dropout_parameter.get())
         self.hidden_layers = int(self.combo_hidden_layers_parameter.get())
         self.parameter_window.destroy()
-        # self.parameter_window.destroy()
-
 
     def train_and_predict(self, epochs):
         script_directory = os.path.dirname(os.path.abspath(__file__))
-        file_path = os.path.join(script_directory, 'parametric_data.csv')
+        file_path = os.path.join(script_directory, 'HEART_PLOT.csv')
         data = pd.read_csv(file_path)
 
-        # Select relevant features for prediction
-        selected_features = ['Month', 'Year', 'Temperature (degree centigrate)', 'diurnal temp range (degree centigrate)',
-                             'Precipitation (mm/month)', 'Pressure (Hpa)', 'Previous GWL']
+        selected_features = ['age','sex','chestpain','bloodpressure','cholestoral','bloodsugar','ECG','Heartrate','Outcome']
         data = data[selected_features]
 
-        # Normalize the data
         scaler = MinMaxScaler()
         data_scaled = scaler.fit_transform(data)
 
-        # Split data into features and target
         X = data_scaled[:, :-1]
         y = data_scaled[:, -1]
 
-        # Split data into train and test sets
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        # Reshape data for LSTM input (samples, time steps, features)
-        time_steps = 1  # Adjust this for time windowing
+        time_steps = 1
         X_train = X_train.reshape(X_train.shape[0], time_steps, X_train.shape[1])
         X_test = X_test.reshape(X_test.shape[0], time_steps, X_test.shape[1])
 
-
-        # Build the LSTM model with specified parameters
         model = Sequential()
         model.add(LSTM(self.lstm_units, activation=self.activation_function, input_shape=(X_train.shape[1], X_train.shape[2])))
 
-        # Add hidden layers based on user input
         for _ in range(self.hidden_layers):
-            model.add(Dense(128, activation='relu'))  # You can adjust the number of units as needed
+            model.add(Dense(128, activation='relu'))
 
         model.add(Dropout(self.dropout_rate))
         model.add(Dense(1))
@@ -127,28 +114,35 @@ class GroundwaterPredictionApp:
         optimizer = Adam(learning_rate=0.001)
         model.compile(optimizer=optimizer, loss='mse')
 
-        # Set up callbacks for early stopping and learning rate reduction
         early_stopping = EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
         reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=1e-6)
 
         history = model.fit(X_train, y_train, epochs=epochs, batch_size=16, validation_data=(X_test, y_test),
                             callbacks=[early_stopping, reduce_lr], verbose=1)
 
-        # Make predictions
         y_pred = model.predict(X_test)
 
-        # Inverse transform predictions and actual values
         y_pred_inv = scaler.inverse_transform(np.hstack((X_test.reshape(X_test.shape[0], X_test.shape[2]), y_pred.reshape(-1, 1))))[:, -1]
         y_test_inv = scaler.inverse_transform(np.hstack((X_test.reshape(X_test.shape[0], X_test.shape[2]), y_test.reshape(-1, 1))))[:, -1]
 
-        # Calculate evaluation metrics
         mse = mean_squared_error(y_test_inv, y_pred_inv)
         rmse = sqrt(mse)
         mae = mean_absolute_error(y_test_inv, y_pred_inv)
         r2 = r2_score(y_test_inv, y_pred_inv)
 
-        return epochs, mse, rmse, mae, r2, y_test_inv, y_pred_inv
+        # Calculate accuracy with a tolerance of ±5 units
+        tolerance = 0.75
+        accuracy = self.calculate_accuracy(y_test_inv, y_pred_inv, tolerance)
 
+        return epochs, mse, rmse, mae, r2, accuracy, y_test_inv, y_pred_inv
+
+    def calculate_accuracy(self, y_true, y_pred, tolerance):
+        correct = 0
+        total = len(y_true)
+        for true, pred in zip(y_true, y_pred):
+            if abs(true - pred) <= tolerance:
+                correct += 1
+        return (correct / total) * 100
 
     def predict_and_show(self):
         epochs = int(self.entry_epochs.get())
@@ -159,33 +153,36 @@ class GroundwaterPredictionApp:
             return
 
         results = self.train_and_predict(epochs)
-        
-        results_text = f"Epochs: {results[0]}\nMSE: {results[1]}\nRMSE: {results[2]}\nMAE: {results[3]}\nR2: {results[4]}"
-        self.results_text.delete(1.0, tk.END)  # Clear previous results
+
+        results_text = f"Epochs: {results[0]}\nMSE: {results[1]}\nRMSE: {results[2]}\nMAE: {results[3]}\nR2: {results[4]}\nAccuracy : {results[5]:.2f}%"
+        self.results_text.delete(1.0, tk.END)
         self.results_text.insert(tk.END, results_text)
 
-        # Plot predictions vs. actual values
         plt.figure(figsize=(10, 6))
-        plt.plot(results[5], label='Actual')
-        plt.plot(results[6], label='Predicted')
+        plt.plot(results[6], label='Actual')
+        plt.plot(results[7], label='Predicted')
         plt.xlabel('Time')
         plt.ylabel('Groundwater Level')
         plt.title('Groundwater Level Prediction using LSTM')
         plt.legend()
         plt.show()
 
-
     def append_to_csv(self):
         filename = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
         if filename:
-            results = self.train_and_predict(int(self.entry_epochs.get()), self.combo_activation.get())
-            results_text = f"Epochs: {results[0]}\nMSE: {results[1]}\nRMSE: {results[2]}\nMAE: {results[3]}\nR2: {results[4]}\n"
-            
-            # Append results to CSV
+            results = self.train_and_predict(int(self.entry_epochs.get()))
+            results_text = f"{results[0]},{self.activation_function},{self.lstm_units},{self.hidden_layers},{self.dropout_rate},{results[1]},{results[2]},{results[3]},{results[4]},{results[5]}\n"
+
+            if not os.path.exists(filename):
+                header = "Epochs,Activation Function,Number of LSTM Units,Number of Hidden Layers,Dropout Rate,MSE,RMSE,MAE,R2,Accuracy\n"
+                with open(filename, "w") as f:
+                    f.write(header)
+
             with open(filename, "a") as f:
-                f.write(results_text + "\n")
+                f.write(results_text)
 
             self.results_text.insert(tk.END, "Results appended to CSV.\n")
+
 
 if __name__ == "__main__":
     root = tk.Tk()

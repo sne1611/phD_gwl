@@ -1,43 +1,28 @@
-'''
-To fill the null values we have
-1.  replace     
-2.  dropna  
-3.  fill with previous values - df.fillna(method="pad")
-4.  fill with next value - df.fillna(method="bfill")
-5.  with mean of a column df.fillna(value = df['Current Level'].mean())
-6.  with max or min - df.fillna(value = df['Current Level'].max()  or df.fillna(value = df['Current Level'].min()
-7.  interpolate
-'''
-import pandas as pd
-from numpy import mean
+import pyautogui
+import time
 
-df = pd.read_csv('GWL1993-2021_norm_uni.csv')
+# Get the screen size
+screen_width, screen_height = pyautogui.size()
 
-# df1 = df.dropna()    
-# df1.insert(2,'norm','null')             
+# Define the total duration (1 hour = 3600 seconds)
+total_duration = 3600  # in seconds
 
-# print(df1.head())
+# Define the duration for each movement (10 seconds)
+movement_duration = 10  # in seconds
 
-# df2 = df
-# df2['Current Level'] = df2['Current Level'].fillna(df2['Current Level'].mean())
+# Calculate the number of iterations needed
+iterations = total_duration // movement_duration
 
-# df2.to_csv('gwl_fillna.csv')
-# print(df)
-print("##########---------------##########")
-# print(df2['Current Level'])
+# Loop for the specified number of iterations
+for _ in range(iterations):
+    # Move the mouse in a square pattern
+    pyautogui.moveTo(100, 100, duration=0.25)  # move to (100, 100) over 0.25 seconds
+    pyautogui.moveTo(screen_width - 100, 100, duration=0.25)  # move to (screen_width - 100, 100)
+    pyautogui.moveTo(screen_width - 100, screen_height - 100, duration=0.25)  # move to bottom right corner
+    pyautogui.moveTo(100, screen_height - 100, duration=0.25)  # move to bottom left corner
 
-lst_null = df['Current Level'].isnull()
+    # Wait for 10 seconds before the next movement
+    time.sleep(movement_duration)
 
-for i in range(0,len(df['Current Level'])):
-    print(df['Current Level'][i])
-    if lst_null[i]==True:
-        df['Current Level'][i] = df['Current Level'][1:(i)].mean()
-        print("index:",i+1,"      df['Current Level'][i]:",df['Current Level'][i])
-
-df.to_csv("gwl_preproc.csv",index=False)
-# numbers = [i for i in range(1, ) if lst_null[i]==True] 
-
-# print(lst_null[2])
-# print(df['Current Level'][1])
-
-
+# Move the mouse back to the center of the screen
+pyautogui.moveTo(screen_width / 2, screen_height / 2, duration=0.25)

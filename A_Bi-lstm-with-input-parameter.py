@@ -1,3 +1,4 @@
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,11 +21,33 @@ class GroundwaterPredictionApp:
         self.root = root
         self.root.title("Groundwater Prediction GUI")
 
+        # Number of Epochs
         self.label_epochs = ttk.Label(root, text="Number of Epochs:")
         self.label_epochs.pack()
 
         self.entry_epochs = ttk.Entry(root)
         self.entry_epochs.pack()
+
+        # Learning Rate
+        self.label_learning_rate = ttk.Label(root, text="Learning Rate:")
+        self.label_learning_rate.pack()
+
+        self.entry_learning_rate = ttk.Entry(root)
+        self.entry_learning_rate.pack()
+
+        # Batch Size
+        self.label_batch_size = ttk.Label(root, text="Batch Size:")
+        self.label_batch_size.pack()
+
+        self.entry_batch_size = ttk.Entry(root)
+        self.entry_batch_size.pack()
+
+        # Dropout Rate
+        self.label_dropout_rate = ttk.Label(root, text="Dropout Rate:")
+        self.label_dropout_rate.pack()
+
+        self.entry_dropout_rate = ttk.Entry(root)
+        self.entry_dropout_rate.pack()
 
         self.button_predict = ttk.Button(root, text="Predict and Show Results", command=self.predict_and_show)
         self.button_predict.pack()
@@ -35,12 +58,11 @@ class GroundwaterPredictionApp:
         self.results_text = tk.Text(root, height=10, width=40)
         self.results_text.pack()
 
-    def train_and_predict(self, epochs):
+    def train_and_predict(self, epochs, learning_rate, batch_size, dropout_rate):
         # Load the data
         script_directory = os.path.dirname(os.path.abspath(__file__))
         file_path = os.path.join(script_directory, 'parametric_data.csv')
         data = pd.read_csv(file_path)
-        # data = pd.read_csv('parametric_data.csv')
 
         # Select relevant features for prediction
         selected_features = ['Month', 'Year', 'Temperature (degree centigrate)', 'diurnal temp range (degree centigrate)',
@@ -68,19 +90,19 @@ class GroundwaterPredictionApp:
         bi_lstm = Bidirectional(LSTM(100, activation='relu', return_sequences=True))(input_layer)
         attention = Attention()([bi_lstm, bi_lstm])
         concatenated = Concatenate()([bi_lstm, attention])
-        dropout = Dropout(0.3)(concatenated)
+        dropout = Dropout(dropout_rate)(concatenated)
         lstm_out = LSTM(50, activation='relu')(dropout)
         output_layer = Dense(1)(lstm_out)
 
         model = Model(inputs=input_layer, outputs=output_layer)
-        optimizer = Adam(learning_rate=0.001)
+        optimizer = Adam(learning_rate=learning_rate)
         model.compile(optimizer=optimizer, loss='mse')
 
         # Set up callbacks for early stopping and learning rate reduction
         early_stopping = EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
         reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=1e-6)
 
-        history = model.fit(X_train, y_train, epochs=epochs, batch_size=16, validation_data=(X_test, y_test),
+        history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_test, y_test),
                             callbacks=[early_stopping, reduce_lr], verbose=1)
 
         # Make predictions
@@ -100,7 +122,12 @@ class GroundwaterPredictionApp:
 
     def predict_and_show(self):
         epochs = int(self.entry_epochs.get())
-        results = self.train_and_predict(epochs)
+        learning_rate = float(self.entry_learning_rate.get())
+        batch_size = int(self.entry_batch_size.get())
+        dropout_rate = float(self.entry_dropout_rate.get())
+
+        results = self.train_and_predict(epochs, learning_rate, batch_size, dropout_rate)
+
         results_text = f"Epochs: {results[0]}\nMSE: {results[1]}\nRMSE: {results[2]}\nMAE: {results[3]}\nR2: {results[4]}"
         self.results_text.delete(1.0, tk.END)  # Clear previous results
         self.results_text.insert(tk.END, results_text)
@@ -118,9 +145,13 @@ class GroundwaterPredictionApp:
     def append_to_csv(self):
         filename = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
         if filename:
-            results = self.train_and_predict(int(self.entry_epochs.get()))
-            results_text = f"Epochs: {results[0]}\nMSE: {results[1]}\nRMSE: {results[2]}\nMAE: {results[3]}\nR2: {results[4]}\n"
-            
+            learning_rate = float(self.entry_learning_rate.get())
+            batch_size = int(self.entry_batch_size.get())
+            dropout_rate = float(self.entry_dropout_rate.get())
+
+            results = self.train_and_predict(int(self.entry_epochs.get()), learning_rate, batch_size, dropout_rate)
+            results_text = f"Epochs, Learning Rate, Batch Size, Dropout Rate, MSE, RMSE, MAE, R2\n{results[0]},{learning_rate}, {batch_size}, {dropout_rate}, {results[1]}, {results[2]}, {results[3]}, {results[4]}, {results[5]}, {results[6]}, {results[7]}"
+
             # Append results to CSV
             with open(filename, "a") as f:
                 f.write(results_text + "\n")
